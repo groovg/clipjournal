@@ -4,7 +4,7 @@
 
 clipjournal is a small, fast clipboard history for Windows 10/11 that can replace Win+V. It ships as one exe of under 400 KB, with no installer and no runtime dependencies.
 
-<img src="docs/screenshot.png" width="400" alt="clipjournal popup with text, a pinned note, an SQL snippet, a link, a file and an image">
+<img src=".github/screenshot.png" width="400" alt="clipjournal popup with text, a pinned note, an SQL snippet, a link, a file and an image">
 
 ## Features
 
