@@ -35,7 +35,7 @@ The config file is `%LOCALAPPDATA%\clipjournal\config.ini`. It is created on fir
 | Setting | Meaning |
 |---|---|
 | `hotkey` | For example `Win+V`, `Ctrl+Shift+V`, `Alt+F1`. If another app already owns the combination, a keyboard hook takes it over. |
-| `keep` | How long unpinned items live: `30m`, `12h`, `7d`, `4w`; `0` means forever. |
+| `keep` / `keep_images` | How long unpinned items live: `30m`, `12h`, `7d`, `4w`; `0` means forever. |
 | `max_items` | Cap on the number of unpinned items. |
 | `ignore_apps` | Exe names whose copies are never recorded. |
 

@@ -65,6 +65,8 @@ const char kDefaultConfig[] =
     "hotkey=Win+V\r\n"
     "; How long unpinned items live: 30m, 12h, 7d, 4w. 0 = forever. Pinned items never expire.\r\n"
     "keep=30d\r\n"
+    "; Separate lifetime for images (they are the heavy ones). Empty = same as keep.\r\n"
+    "keep_images=7d\r\n"
     "; Max number of unpinned items. 0 = no limit.\r\n"
     "max_items=1000\r\n"
     "; Never record clipboard from these programs (exe names, comma-separated).\r\n"
@@ -73,7 +75,7 @@ const char kDefaultConfig[] =
 std::vector<Item> items;  // newest first
 fs::path dataDir, itemsDir, cfgPath;
 std::wstring exePath, hotkey;
-long long keepMs;
+long long keepMs, keepImagesMs;
 int maxItems;
 std::vector<std::wstring> ignoreApps;
 
@@ -262,7 +264,8 @@ void Prune() {
     std::error_code ec;
     std::erase_if(items, [&](const Item& it) {
         if (it.pinned) return false;
-        if ((keepMs > 0 && now - it.ts > keepMs) || (maxItems > 0 && kept >= maxItems)) {
+        long long keep = it.kind == Image ? keepImagesMs : keepMs;
+        if ((keep > 0 && now - it.ts > keep) || (maxItems > 0 && kept >= maxItems)) {
             fs::remove(it.path, ec);
             return true;
         }
@@ -744,7 +747,9 @@ std::wstring Ini(const wchar_t* key, const wchar_t* def) {
 void ReadConfig() {
     if (!fs::exists(cfgPath)) WriteBytes(cfgPath, kDefaultConfig);
     hotkey = Ini(L"hotkey", L"Win+V");
-    keepMs = ParseDuration(Ini(L"keep", L"30d"));
+    std::wstring keep = Ini(L"keep", L"30d"), keepImages = Ini(L"keep_images", L"");
+    keepMs = ParseDuration(keep);
+    keepImagesMs = ParseDuration(keepImages.empty() ? keep : keepImages);
     maxItems = _wtoi(Ini(L"max_items", L"1000").c_str());
     ignoreApps.clear();
     for (auto& a : Split(Lower(Ini(L"ignore_apps", L"")), L','))
