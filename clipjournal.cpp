@@ -56,6 +56,7 @@ const int kW = 400, kH = 480;
 const wchar_t* kFilters[] = {L"All", L"Pinned", L"Text", L"Links", L"Images", L"Files"};
 const CLSID kPngClsid = {0x557cf406, 0x1a04, 0x11d3, {0x9a, 0x73, 0x00, 0x00, 0xf8, 0x1e, 0xf3, 0x2e}};  // GDI+ PNG encoder
 const UINT WM_APP_SHOW = WM_APP + 1, WM_APP_TRAY = WM_APP + 2;
+const ULONG_PTR kOwnInput = 0xC11B;  // tags our SendInput events so the keyboard hook skips them
 const wchar_t* kRunKey = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 const char kDefaultConfig[] =
     "; clipjournal settings. After editing: tray icon > Reload config.\r\n"
@@ -443,7 +444,10 @@ bool ToClipboard(const Item& it) {
 
 void SendCtrlV() {
     INPUT in[4] = {};
-    for (auto& i : in) i.type = INPUT_KEYBOARD;
+    for (auto& i : in) {
+        i.type = INPUT_KEYBOARD;
+        i.ki.dwExtraInfo = kOwnInput;
+    }
     in[0].ki.wVk = in[3].ki.wVk = VK_CONTROL;
     in[1].ki.wVk = in[2].ki.wVk = 'V';
     in[2].ki.dwFlags = in[3].ki.dwFlags = KEYEVENTF_KEYUP;
@@ -682,7 +686,7 @@ UINT ModsDown() {
 
 LRESULT CALLBACK KbHook(int code, WPARAM wp, LPARAM lp) {
     auto* k = (KBDLLHOOKSTRUCT*)lp;
-    if (code == HC_ACTION && k->vkCode == hkVk && !(k->flags & LLKHF_INJECTED)) {
+    if (code == HC_ACTION && k->vkCode == hkVk && k->dwExtraInfo != kOwnInput) {
         bool up = k->flags & LLKHF_UP;
         if (!up && (hkHeld || ModsDown() == hkMods)) {
             if (!hkHeld) {
@@ -691,6 +695,7 @@ LRESULT CALLBACK KbHook(int code, WPARAM wp, LPARAM lp) {
                     INPUT in[2] = {};
                     in[0].type = in[1].type = INPUT_KEYBOARD;
                     in[0].ki.wVk = in[1].ki.wVk = 0xE8;
+                    in[0].ki.dwExtraInfo = in[1].ki.dwExtraInfo = kOwnInput;
                     in[1].ki.dwFlags = KEYEVENTF_KEYUP;
                     SendInput(2, in, sizeof(INPUT));
                 }
