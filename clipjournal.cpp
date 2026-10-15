@@ -559,6 +559,10 @@ void Refill(int sel) {
 }
 
 void HidePopup() { ShowWindow(popup, SW_HIDE); }
+void Dismiss() {  // hide and hand focus back to where the user was
+    HidePopup();
+    if (prevFg) SetForegroundWindow(prevFg);
+}
 
 void ShowPopup() {
     if (IsWindowVisible(popup)) {
@@ -615,11 +619,8 @@ void PasteSelected(bool paste) {
         return;
     }
     MoveToTop(i);
-    HidePopup();
-    if (paste && prevFg) {
-        SetForegroundWindow(prevFg);
-        SendCtrlV();  // ponytail: blocked by UIPI for elevated targets; the item is on the clipboard anyway
-    }
+    Dismiss();
+    if (paste && prevFg) SendCtrlV();  // ponytail: blocked by UIPI for elevated targets; the item is on the clipboard anyway
 }
 
 void DeleteSelected() {
@@ -651,7 +652,7 @@ LRESULT CALLBACK KeysProc(HWND h, UINT m, WPARAM w, LPARAM l, UINT_PTR, DWORD_PT
         bool ctrl = GetKeyState(VK_CONTROL) < 0, shift = GetKeyState(VK_SHIFT) < 0;
         switch (w) {
             case VK_RETURN: PasteSelected(!shift); return 0;
-            case VK_ESCAPE: HidePopup(); return 0;
+            case VK_ESCAPE: Dismiss(); return 0;
             case VK_TAB: CycleFilter(shift ? -1 : 1); return 0;
             case VK_DELETE: if (shift) { DeleteSelected(); return 0; } break;
             case 'P': if (ctrl) { TogglePin(); return 0; } break;
