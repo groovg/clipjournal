@@ -10,7 +10,9 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: write  # publish the release on v* tags
+      contents: write  # publish the release and the Scoop manifest on v* tags
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}  # classic PAT with public_repo; winget step is skipped without it
     steps:
       - uses: actions/checkout@v7
       - run: cmake -S . -B build
@@ -28,3 +30,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "${{ github.ref_name }}" build/Release/clipjournal.exe --generate-notes
+      - name: Update Scoop manifest
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $v = '${{ github.ref_name }}'.TrimStart('v')
+          $hash = (Get-FileHash build/Release/clipjournal.exe -Algorithm SHA256).Hash.ToLower()
+          git fetch -q origin main
+          git checkout -q -B main origin/main
+          $m = Get-Content bucket/clipjournal.json -Raw | ConvertFrom-Json
+          $m.version = $v
+          $m.url = "https://github.com/${{ github.repository }}/releases/download/v$v/clipjournal.exe"
+          $m.hash = $hash
+          $m | ConvertTo-Json -Depth 5 | Set-Content bucket/clipjournal.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -qam "scoop: clipjournal $v"
+          git push -q origin main
+      - name: Submit to winget
+        if: startsWith(github.ref, 'refs/tags/v') && env.WINGET_TOKEN != ''
+        run: |
+          $v = '${{ github.ref_name }}'.TrimStart('v')
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          .\wingetcreate.exe update groovg.clipjournal -v $v -u "https://github.com/${{ github.repository }}/releases/download/v$v/clipjournal.exe" -t $env:WINGET_TOKEN -s

@@ -21,9 +21,22 @@ clipjournal is a small, fast clipboard history for Windows 10/11 that can replac
 
 ## Install
 
-1. Download `clipjournal.exe` from [Releases](https://github.com/groovg/clipjournal/releases/latest).
-2. Put it somewhere permanent, for example `%LOCALAPPDATA%\Programs\clipjournal\`, and run it.
-3. To launch it on login, open the tray icon menu and choose **Start with Windows**.
+**Scoop:**
+
+```
+scoop bucket add clipjournal https://github.com/groovg/clipjournal
+scoop install clipjournal
+```
+
+**winget** (once Microsoft has approved the package):
+
+```
+winget install groovg.clipjournal
+```
+
+**Manually:** download `clipjournal.exe` from [Releases](https://github.com/groovg/clipjournal/releases/latest), put it somewhere permanent (for example `%LOCALAPPDATA%\Programs\clipjournal\`) and run it.
+
+To launch clipjournal on login, open the tray icon menu and choose **Start with Windows**.
 
 **SmartScreen and antivirus:** the exe isn't code-signed yet, so SmartScreen may show "Windows protected your PC". Click **More info**, then **Run anyway**. Some antivirus tools flag any program that both reads the clipboard and uses a keyboard hook. All the code is in [one file](clipjournal.cpp), so you can read it, or build the exe yourself.
 
@@ -59,6 +72,8 @@ The config file is `%LOCALAPPDATA%\clipjournal\config.ini`. It is created on fir
 
 **Storage:** entries are kept in `items\<unix-ms>_<hash>[_pin].<txt|png|files>`. If you copy the same content again, the existing entry moves to the top instead of being duplicated. History is stored **unencrypted**.
 
+**Privacy:** clipjournal has no network code, so nothing you copy ever leaves your machine. It reads the keyboard only to detect its own hotkey.
+
 **Known limits:**
 - Auto-paste does not work in windows running as administrator, because Windows (UIPI) blocks simulated input. The item is still on the clipboard, so press Ctrl+V yourself.
 - Text keeps only its plain-text form. Formatting (HTML, RTF) is not saved.
@@ -78,8 +93,10 @@ powershell -File tests\e2e.ps1                # end-to-end test on the real clip
 ## Roadmap
 
 **Next**
-- [ ] winget package
-- [ ] Code signing, so SmartScreen and antivirus warnings go away
+- [x] Scoop bucket
+- [ ] winget package (submitted, in review)
+- [ ] Code signing, so SmartScreen and antivirus warnings go away (SignPath Foundation, once the project has some adoption)
+- [ ] Version info resource in the exe
 - [ ] App icon
 - [ ] Pause recording and "ignore next copy" in the tray menu
 - [ ] Tell the user when auto-paste is blocked by an elevated window
@@ -89,7 +106,6 @@ powershell -File tests\e2e.ps1                # end-to-end test on the real clip
 - [ ] Keep HTML/RTF next to plain text, so pasting keeps formatting
 - [ ] Optional encryption of history at rest (DPAPI)
 - [ ] Per-type size limits
-- [ ] Scoop manifest
 
 **Non-goals:** cloud sync, scripting or plugins, tabs and folders, a built-in editor. Bigger clipboard managers grow these features and pile up hundreds of open issues. clipjournal aims to stay small enough for one person to read in an evening.
 
