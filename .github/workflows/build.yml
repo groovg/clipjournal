@@ -15,7 +15,10 @@ jobs:
       WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}  # classic PAT with public_repo; winget step is skipped without it
     steps:
       - uses: actions/checkout@v7
-      - run: cmake -S . -B build
+      - name: Configure
+        run: |
+          $v = if ('${{ github.ref_type }}' -eq 'tag') { '${{ github.ref_name }}'.TrimStart('v') } else { '0.0.0' }
+          cmake -S . -B build "-DVERSION=$v"  # quoted whole: PowerShell splits -DX=0.2.0 at the dot
       - run: cmake --build build --config Release
       - name: Self-test
         run: |

@@ -1,0 +1,28 @@
+// Configured by CMake into the build dir; VERSION comes from -DVERSION (CI passes the git tag).
+#include <winver.h>
+
+1 VERSIONINFO
+FILEVERSION @VERSION_COMMA@,0
+PRODUCTVERSION @VERSION_COMMA@,0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "groovg"
+            VALUE "FileDescription", "clipjournal clipboard history"
+            VALUE "FileVersion", "@VERSION@"
+            VALUE "InternalName", "clipjournal"
+            VALUE "LegalCopyright", "MIT License"
+            VALUE "OriginalFilename", "clipjournal.exe"
+            VALUE "ProductName", "clipjournal"
+            VALUE "ProductVersion", "@VERSION@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

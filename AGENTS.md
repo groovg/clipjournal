@@ -47,6 +47,7 @@ The file is laid out in this order:
 
 ## Gotchas
 
+- The exe's version resource comes from `-DVERSION=X.Y.Z`. CI passes the git tag; local builds get 0.0.0. In PowerShell, quote the whole argument (`"-DVERSION=$v"`), otherwise PowerShell splits it at the dot.
 - In PowerShell tests, pass `[NullString]::Value`, not `$null`, to Win32 string parameters: `$null` becomes `""`.
 - A `config.ini` next to the exe turns on portable mode, and the tests rely on it. Don't leave one in `build\Release` after manual runs.
 - The keyboard hook path can be tested with `keybd_event`. Only events tagged `kOwnInput` are ignored, not every injected one.
