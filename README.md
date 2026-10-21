@@ -97,7 +97,7 @@ powershell -File tests\e2e.ps1                # end-to-end test on the real clip
 - [ ] winget package (submitted, in review)
 - [ ] Code signing, so SmartScreen and antivirus warnings go away (SignPath Foundation, once the project has some adoption)
 - [x] Version info resource in the exe
-- [ ] App icon
+- [x] App icon
 - [ ] Pause recording and "ignore next copy" in the tray menu
 - [ ] Tell the user when auto-paste is blocked by an elevated window
 - [ ] Optional paste delay for apps that drop a fast Ctrl+V

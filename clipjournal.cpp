@@ -82,6 +82,7 @@ std::vector<std::wstring> ignoreApps;
 
 HWND popup, edit, list, prevFg;
 HFONT font;
+HICON icon;
 HDC measureDC;
 int lineH, filter;
 UINT dpi = 96;
@@ -768,7 +769,7 @@ void TrayIcon(DWORD msg) {
     n.uID = 1;
     n.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     n.uCallbackMessage = WM_APP_TRAY;
-    n.hIcon = LoadIconW(nullptr, IDI_APPLICATION);  // ponytail: stock icon, add a .rc with a real one when it matters
+    n.hIcon = icon;
     wcsncpy_s(n.szTip, (L"clipjournal: " + hotkey).c_str(), _TRUNCATE);
     Shell_NotifyIconW(msg, &n);
 }
@@ -908,6 +909,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR cmd, int) {
     cfIgnore = RegisterClipboardFormatW(L"Clipboard Viewer Ignore");
     cfHistory = RegisterClipboardFormatW(L"CanIncludeInClipboardHistory");
     msgTaskbarCreated = RegisterWindowMessageW(L"TaskbarCreated");
+    LoadIconMetric(hi, MAKEINTRESOURCEW(1), LIM_SMALL, &icon);  // picks the tray size for the current DPI
 
     WNDCLASSW wc{};
     wc.style = CS_DROPSHADOW;

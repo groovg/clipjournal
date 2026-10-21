@@ -1,6 +1,8 @@
 // Configured by CMake into the build dir; VERSION comes from -DVERSION (CI passes the git tag).
 #include <winver.h>
 
+1 ICON "@CMAKE_CURRENT_SOURCE_DIR@/clipjournal.ico"
+
 1 VERSIONINFO
 FILEVERSION @VERSION_COMMA@,0
 PRODUCTVERSION @VERSION_COMMA@,0
