@@ -89,6 +89,8 @@ UINT dpi = 96;
 HBRUSH bgBrush, selBrush;
 struct Colors { COLORREF bg, fg, sub, sel, accent; } col;
 DWORD ownSeq;
+bool paused, skipNext;  // tray toggles
+uint64_t skippedHash;   // content dropped by "Ignore next copy"
 UINT cfPng, cfExclude, cfIgnore, cfHistory, msgTaskbarCreated;
 UINT hkMods, hkVk;
 bool hkHeld;
@@ -287,8 +289,7 @@ void Changed() {
     if (IsWindowVisible(popup)) Refill(std::max(0, (int)SendMessageW(list, LB_GETCURSEL, 0, 0)));
 }
 
-void Add(std::string data, const wchar_t* ext) {
-    uint64_t h = Fnv1a(data);
+void Add(std::string data, const wchar_t* ext, uint64_t h) {
     for (size_t i = 0; i < items.size(); i++)
         if (items[i].hash == h && items[i].ext == ext) {  // copied again: just bump it
             MoveToTop(i);
@@ -350,7 +351,7 @@ bool FromIgnoredApp() {
 }
 
 void Capture() {
-    if (GetClipboardSequenceNumber() == ownSeq) return;  // our own paste
+    if (GetClipboardSequenceNumber() == ownSeq || paused) return;  // our own paste, or recording paused
     // Password managers mark secrets with these formats.
     if (IsClipboardFormatAvailable(cfExclude) || IsClipboardFormatAvailable(cfIgnore) || FromIgnoredApp()) return;
     if (!OpenClip()) return;
@@ -391,7 +392,15 @@ void Capture() {
         ext = L".png";
     }
     CloseClipboard();
-    if (!data.empty()) Add(std::move(data), ext);
+    if (data.empty()) return;
+    uint64_t h = Fnv1a(data);
+    if (skipNext || h == skippedHash) {  // one copy can fire many updates: skip all of them, not just the first
+        skipNext = false;
+        skippedHash = h;
+        return;
+    }
+    skippedHash = 0;
+    Add(std::move(data), ext, h);
 }
 
 bool SetGlobal(UINT fmt, const void* p, size_t n) {
@@ -559,6 +568,13 @@ void Refill(int sel) {
     InvalidateRect(list, nullptr, TRUE);
 }
 
+void TakeFocus(HWND h) {
+    INPUT in{};
+    in.type = INPUT_MOUSE;
+    SendInput(1, &in, sizeof in);  // zero-length input lets a background process take focus
+    SetForegroundWindow(h);
+}
+
 void HidePopup() { ShowWindow(popup, SW_HIDE); }
 void Dismiss() {  // hide and hand focus back to where the user was
     HidePopup();
@@ -598,11 +614,8 @@ void ShowPopup() {
     SetWindowTextW(edit, L"");
     Refill(0);
 
-    INPUT in{};
-    in.type = INPUT_MOUSE;
-    SendInput(1, &in, sizeof in);  // zero-length input lets a background process take focus
     ShowWindow(popup, SW_SHOW);
-    SetForegroundWindow(popup);
+    TakeFocus(popup);
     SetFocus(edit);
 }
 
@@ -770,7 +783,7 @@ void TrayIcon(DWORD msg) {
     n.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     n.uCallbackMessage = WM_APP_TRAY;
     n.hIcon = icon;
-    wcsncpy_s(n.szTip, (L"clipjournal: " + hotkey).c_str(), _TRUNCATE);
+    wcsncpy_s(n.szTip, (L"clipjournal: " + hotkey + (paused ? L" (paused)" : L"")).c_str(), _TRUNCATE);
     Shell_NotifyIconW(msg, &n);
 }
 
@@ -790,6 +803,9 @@ void SetAutostart(bool on) {
 void TrayMenu() {
     HMENU m = CreatePopupMenu();
     AppendMenuW(m, MF_STRING, 1, L"Open history");
+    AppendMenuW(m, MF_STRING | (paused ? MF_CHECKED : 0), 8, L"Pause recording");
+    AppendMenuW(m, MF_STRING | (skipNext ? MF_CHECKED : 0), 9, L"Ignore next copy");
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(m, MF_STRING, 2, L"Edit config");
     AppendMenuW(m, MF_STRING, 3, L"Reload config");
     AppendMenuW(m, MF_STRING, 4, L"Open data folder");
@@ -799,7 +815,7 @@ void TrayMenu() {
     AppendMenuW(m, MF_STRING, 7, L"Exit");
     POINT pt;
     GetCursorPos(&pt);
-    SetForegroundWindow(popup);
+    TakeFocus(popup);
     int cmd = TrackPopupMenu(m, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON, pt.x, pt.y, 0, popup, nullptr);
     PostMessageW(popup, WM_NULL, 0, 0);
     DestroyMenu(m);
@@ -816,6 +832,8 @@ void TrayMenu() {
             }
             break;
         case 7: DestroyWindow(popup); break;
+        case 8: paused = !paused; TrayIcon(NIM_MODIFY); break;
+        case 9: skipNext = !skipNext; break;
     }
 }
 

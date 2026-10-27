@@ -9,6 +9,7 @@ public static class W {
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string c, string n);
   [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
 }
 '@
 $exe = Resolve-Path (Join-Path $PSScriptRoot '..\build\Release\clipjournal.exe')
@@ -48,6 +49,22 @@ try {
   Check (-not [W]::IsWindowVisible($h)) 'popup closes after pick'
   Check (@(Get-Clipboard -Format FileDropList | ForEach-Object { "$_" }) -contains $tmp) 'picked file is back on the clipboard'
   Check ((Get-ChildItem $items).Count -eq 4) 'own clipboard write is not recorded again'
+
+  function TrayPick([int]$row) {  # opens the tray menu as a right click would, then picks the row-th item
+    [void][W]::PostMessage($h, 0x8002, [IntPtr]::Zero, [IntPtr]0x0205)  # WM_APP_TRAY, WM_RBUTTONUP
+    Start-Sleep -Milliseconds 400
+    if ([W]::GetForegroundWindow() -ne $h) { throw 'FAIL: tray menu did not get focus' }
+    [System.Windows.Forms.SendKeys]::SendWait(('{DOWN}' * $row) + '{ENTER}'); Wait
+  }
+  TrayPick 2  # Pause recording
+  Set-Clipboard -Value 'copied while paused'; Wait
+  Check ((Get-ChildItem $items).Count -eq 4) 'nothing recorded while paused'
+  TrayPick 2  # resume
+  TrayPick 3  # Ignore next copy
+  Set-Clipboard -Value 'one-off secret'; Wait
+  Set-Clipboard -Value 'recorded again'; Wait
+  $n = (Get-ChildItem $items).Count
+  Check ($n -eq 5) "ignore next copy skips exactly one copy (items: $n, expected 5)"
 } finally {
   Stop-Process -Id $p.Id -ErrorAction SilentlyContinue
   Remove-Item $items, (Join-Path $dir 'config.ini'), $tmp -Recurse -Force -ErrorAction SilentlyContinue
