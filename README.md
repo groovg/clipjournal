@@ -69,6 +69,7 @@ The config file is `%LOCALAPPDATA%\clipjournal\config.ini`. It is created on fir
 | `keep_images` | `7d` | The same, for images only. Leave it empty to use `keep`. |
 | `max_items` | `1000` | Maximum number of unpinned items. `0` means no limit. |
 | `ignore_apps` | KeePass, KeePassXC, 1Password, Bitwarden | Exe names, comma-separated. Copies from these apps are never recorded. |
+| `paste_delay` | `0` | Milliseconds to wait before auto-paste and between Ctrl and V. Raise it (e.g. `50`) if an app pastes a bare "v" or nothing at all. |
 
 **Storage:** entries are kept in `items\<unix-ms>_<hash>[_pin].<txt|png|files>`. If you copy the same content again, the existing entry moves to the top instead of being duplicated. History is stored **unencrypted**.
 
@@ -100,7 +101,7 @@ powershell -File tests\e2e.ps1                # end-to-end test on the real clip
 - [x] App icon
 - [x] Pause recording and "ignore next copy" in the tray menu
 - [ ] Tell the user when auto-paste is blocked by an elevated window
-- [ ] Optional paste delay for apps that drop a fast Ctrl+V
+- [x] Optional paste delay for apps that drop a fast Ctrl+V
 
 **Considering**
 - [ ] Keep HTML/RTF next to plain text, so pasting keeps formatting

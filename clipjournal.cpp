@@ -71,13 +71,15 @@ const char kDefaultConfig[] =
     "; Max number of unpinned items. 0 = no limit.\r\n"
     "max_items=1000\r\n"
     "; Never record clipboard from these programs (exe names, comma-separated).\r\n"
-    "ignore_apps=KeePass.exe,KeePassXC.exe,1Password.exe,Bitwarden.exe\r\n";
+    "ignore_apps=KeePass.exe,KeePassXC.exe,1Password.exe,Bitwarden.exe\r\n"
+    "; Milliseconds to wait before auto-paste and between Ctrl and V. Raise (e.g. 50) if an app pastes a bare \"v\".\r\n"
+    "paste_delay=0\r\n";
 
 std::vector<Item> items;  // newest first
 fs::path dataDir, itemsDir, cfgPath;
 std::wstring exePath, hotkey;
 long long keepMs, keepImagesMs;
-int maxItems;
+int maxItems, pasteDelay;
 std::vector<std::wstring> ignoreApps;
 
 HWND popup, edit, list, prevFg;
@@ -461,7 +463,10 @@ void SendCtrlV() {
     in[0].ki.wVk = in[3].ki.wVk = VK_CONTROL;
     in[1].ki.wVk = in[2].ki.wVk = 'V';
     in[2].ki.dwFlags = in[3].ki.dwFlags = KEYEVENTF_KEYUP;
-    SendInput(4, in, sizeof(INPUT));
+    Sleep(pasteDelay);  // let the target settle after the focus switch
+    SendInput(1, in, sizeof(INPUT));
+    Sleep(pasteDelay);  // some apps read Ctrl late and paste a bare "v"
+    SendInput(3, in + 1, sizeof(INPUT));
 }
 
 // ---------- popup ----------
@@ -771,6 +776,7 @@ void ReadConfig() {
     keepMs = ParseDuration(keep);
     keepImagesMs = ParseDuration(keepImages.empty() ? keep : keepImages);
     maxItems = _wtoi(Ini(L"max_items", L"1000").c_str());
+    pasteDelay = std::clamp(_wtoi(Ini(L"paste_delay", L"0").c_str()), 0, 2000);
     ignoreApps.clear();
     for (auto& a : Split(Lower(Ini(L"ignore_apps", L"")), L','))
         if (!a.empty()) ignoreApps.push_back(a);

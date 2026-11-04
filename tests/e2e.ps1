@@ -10,6 +10,9 @@ public static class W {
   [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
+  [DllImport("user32.dll")] static extern void mouse_event(uint f, int dx, int dy, uint d, UIntPtr e);
+  [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+  public static void Focus(IntPtr h) { mouse_event(1, 0, 0, 0, UIntPtr.Zero); SetForegroundWindow(h); }  // same trick as the app
 }
 '@
 $exe = Resolve-Path (Join-Path $PSScriptRoot '..\build\Release\clipjournal.exe')
@@ -23,7 +26,7 @@ function Wait { Start-Sleep -Milliseconds 400 }
 $saved = Get-Clipboard -Raw
 $tmp = Join-Path $env:TEMP 'clipjournal-e2e.txt'
 'x' | Set-Content $tmp
-"[clipjournal]`r`nhotkey=Ctrl+Alt+F11`r`nignore_apps=" | Set-Content (Join-Path $dir 'config.ini') -Encoding ASCII
+"[clipjournal]`r`nhotkey=Ctrl+Alt+F11`r`nignore_apps=`r`npaste_delay=30" | Set-Content (Join-Path $dir 'config.ini') -Encoding ASCII
 $p = Start-Process $exe -PassThru
 Start-Sleep -Milliseconds 800
 try {
@@ -65,6 +68,17 @@ try {
   Set-Clipboard -Value 'recorded again'; Wait
   $n = (Get-ChildItem $items).Count
   Check ($n -eq 5) "ignore next copy skips exactly one copy (items: $n, expected 5)"
+
+  $form = New-Object System.Windows.Forms.Form -Property @{ Text = 'clipjournal e2e'; TopMost = $true }
+  $box = New-Object System.Windows.Forms.TextBox -Property @{ Multiline = $true; Dock = 'Fill' }
+  $form.Controls.Add($box); $form.Show(); [W]::Focus($form.Handle); [System.Windows.Forms.Application]::DoEvents()
+  Check ([W]::GetForegroundWindow() -eq $form.Handle) 'test window has focus'
+  [System.Windows.Forms.SendKeys]::SendWait('^%{F11}'); Start-Sleep -Milliseconds 600
+  Check ([W]::GetForegroundWindow() -eq $h) 'popup opens over the test window'
+  [System.Windows.Forms.SendKeys]::SendWait('{ENTER}'); Start-Sleep -Milliseconds 500  # top row = 'recorded again'
+  [System.Windows.Forms.Application]::DoEvents()
+  Check ($box.Text -eq 'recorded again') "Enter pastes into the previous window (got '$($box.Text)')"
+  $form.Close()
 } finally {
   Stop-Process -Id $p.Id -ErrorAction SilentlyContinue
   Remove-Item $items, (Join-Path $dir 'config.ini'), $tmp -Recurse -Force -ErrorAction SilentlyContinue
