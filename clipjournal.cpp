@@ -454,6 +454,39 @@ bool ToClipboard(const Item& it) {
     return ok;
 }
 
+bool IsElevated(HANDLE process) {
+    HANDLE t;
+    if (!OpenProcessToken(process, TOKEN_QUERY, &t)) return true;  // can't even look: it runs above us
+    TOKEN_ELEVATION e{};
+    DWORD n;
+    BOOL ok = GetTokenInformation(t, TokenElevation, &e, sizeof e, &n);
+    CloseHandle(t);
+    return ok && e.TokenIsElevated;
+}
+
+// Windows (UIPI) silently drops our Ctrl+V when the target runs as admin and we don't.
+bool PasteBlocked(HWND w) {
+    if (IsElevated(GetCurrentProcess())) return false;
+    DWORD pid = 0;
+    GetWindowThreadProcessId(w, &pid);
+    HANDLE p = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (!p) return true;
+    bool blocked = IsElevated(p);
+    CloseHandle(p);
+    return blocked;
+}
+
+void Notify(const wchar_t* text) {
+    NOTIFYICONDATAW n{sizeof n};
+    n.hWnd = popup;
+    n.uID = 1;
+    n.uFlags = NIF_INFO;
+    n.dwInfoFlags = NIIF_INFO;
+    wcsncpy_s(n.szInfoTitle, L"clipjournal", _TRUNCATE);
+    wcsncpy_s(n.szInfo, text, _TRUNCATE);
+    Shell_NotifyIconW(NIM_MODIFY, &n);
+}
+
 void SendCtrlV() {
     INPUT in[4] = {};
     for (auto& i : in) {
@@ -639,7 +672,9 @@ void PasteSelected(bool paste) {
     }
     MoveToTop(i);
     Dismiss();
-    if (paste && prevFg) SendCtrlV();  // ponytail: blocked by UIPI for elevated targets; the item is on the clipboard anyway
+    if (!paste || !prevFg) return;
+    if (PasteBlocked(prevFg)) Notify(L"Copied. That window runs as administrator, so Windows blocks auto-paste: press Ctrl+V.");
+    else SendCtrlV();
 }
 
 void DeleteSelected() {
@@ -903,6 +938,8 @@ int SelfTest() {
     CHECK(!IsLink(L"see https://example.com") && !IsLink(L"https://a b") && !IsLink(L"ftp://x"));
     CHECK(ImageLabel(std::string("\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\x07\x80\0\0\x04\x38", 24)) == L"Image 1920×1080");
     CHECK(Split(L"a, b ,,c", L',').size() == 4 && Split(L"a, b ,,c", L',')[1] == L"b");
+    HWND own = CreateWindowExW(0, L"STATIC", nullptr, 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, nullptr, nullptr);
+    CHECK(own && !PasteBlocked(own));  // same process, same elevation: never blocked
     return 0;
 #undef CHECK
 }

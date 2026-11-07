@@ -76,7 +76,7 @@ The config file is `%LOCALAPPDATA%\clipjournal\config.ini`. It is created on fir
 **Privacy:** clipjournal has no network code, so nothing you copy ever leaves your machine. It reads the keyboard only to detect its own hotkey.
 
 **Known limits:**
-- Auto-paste does not work in windows running as administrator, because Windows (UIPI) blocks simulated input. The item is still on the clipboard, so press Ctrl+V yourself.
+- Auto-paste can't reach windows running as administrator, because Windows (UIPI) blocks simulated input. clipjournal detects this, shows a notification and leaves the item on the clipboard, so press Ctrl+V yourself (or run clipjournal as administrator too).
 - Text keeps only its plain-text form. Formatting (HTML, RTF) is not saved.
 - Search only covers the first 4 KB of each entry.
 
@@ -100,7 +100,7 @@ powershell -File tests\e2e.ps1                # end-to-end test on the real clip
 - [x] Version info resource in the exe
 - [x] App icon
 - [x] Pause recording and "ignore next copy" in the tray menu
-- [ ] Tell the user when auto-paste is blocked by an elevated window
+- [x] Tell the user when auto-paste is blocked by an elevated window
 - [x] Optional paste delay for apps that drop a fast Ctrl+V
 
 **Considering**
