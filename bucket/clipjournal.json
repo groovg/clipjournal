@@ -1,18 +1,18 @@
 {
-    "version": "0.1.0",
-    "description": "Small, fast clipboard history for Windows: text, links, images and files.",
-    "homepage": "https://github.com/groovg/clipjournal",
-    "license": "MIT",
-    "url": "https://github.com/groovg/clipjournal/releases/download/v0.1.0/clipjournal.exe",
-    "hash": "e34399008b0cd7323e4951acd90315c913edb9574ed178887a9845a0c828dd60",
-    "shortcuts": [
-        [
-            "clipjournal.exe",
-            "clipjournal"
-        ]
-    ],
-    "checkver": "github",
-    "autoupdate": {
-        "url": "https://github.com/groovg/clipjournal/releases/download/v$version/clipjournal.exe"
-    }
+  "version": "0.2.0",
+  "description": "Small, fast clipboard history for Windows: text, links, images and files.",
+  "homepage": "https://github.com/groovg/clipjournal",
+  "license": "MIT",
+  "url": "https://github.com/groovg/clipjournal/releases/download/v0.2.0/clipjournal.exe",
+  "hash": "86eaf633363b35c7bb3c5f61eedc58c9b16955fcb6028106600ee7e35f76e380",
+  "shortcuts": [
+    [
+      "clipjournal.exe",
+      "clipjournal"
+    ]
+  ],
+  "checkver": "github",
+  "autoupdate": {
+    "url": "https://github.com/groovg/clipjournal/releases/download/v$version/clipjournal.exe"
+  }
 }
